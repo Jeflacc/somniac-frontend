@@ -340,20 +340,6 @@ const Shader: React.FC<ShaderProps> = ({ source, uniforms, maxFps = 60 }) => {
   );
 };
 
-const AnimatedNavLink = ({ href, children }: { href: string; children: React.ReactNode }) => {
-  const defaultTextColor = 'text-gray-400';
-  const hoverTextColor = 'text-white';
-  const textSizeClass = 'text-sm font-medium';
-
-  return (
-    <a href={href} className={cn("group relative inline-block overflow-hidden h-6", textSizeClass)}>
-      <div className="flex flex-col transition-transform duration-300 ease-out transform group-hover:-translate-y-1/2">
-        <span className={cn("h-6 flex items-center", defaultTextColor)}>{children}</span>
-        <span className={cn("h-6 flex items-center", hoverTextColor)}>{children}</span>
-      </div>
-    </a>
-  );
-};
 
 function MiniNavbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -392,12 +378,6 @@ function MiniNavbar() {
     </div>
   );
 
-  const navLinksData = [
-    { label: 'Manifesto', href: '#' },
-    { label: 'Careers', href: '#' },
-    { label: 'Discover', href: '#' },
-  ];
-
   const loginButtonElement = (
     <button className="px-4 py-2 sm:px-3 text-xs sm:text-sm border border-[#333] bg-[rgba(31,31,31,0.62)] text-gray-300 rounded-full hover:border-white/50 hover:text-white transition-colors duration-200 w-full sm:w-auto">
       LogIn
@@ -432,14 +412,6 @@ function MiniNavbar() {
            {logoElement}
         </div>
 
-        <nav className="hidden sm:flex items-center space-x-4 sm:space-x-6 text-sm">
-          {navLinksData.map((link) => (
-            <AnimatedNavLink key={link.label} href={link.href}>
-              {link.label}
-            </AnimatedNavLink>
-          ))}
-        </nav>
-
         <div className="hidden sm:flex items-center gap-2 sm:gap-3">
           {loginButtonElement}
           {signupButtonElement}
@@ -456,13 +428,6 @@ function MiniNavbar() {
 
       <div className={cn(`sm:hidden flex flex-col items-center w-full transition-all ease-in-out duration-300 overflow-hidden
                        ${isOpen ? 'max-h-[1000px] opacity-100 pt-4' : 'max-h-0 opacity-0 pt-0 pointer-events-none'}`)}>
-        <nav className="flex flex-col items-center space-y-4 text-base w-full">
-          {navLinksData.map((link) => (
-            <a key={link.label} href={link.href} className="text-gray-300 hover:text-white transition-colors w-full text-center">
-              {link.label}
-            </a>
-          ))}
-        </nav>
         <div className="flex flex-col items-center space-y-4 mt-4 w-full">
           {loginButtonElement}
           {signupButtonElement}
