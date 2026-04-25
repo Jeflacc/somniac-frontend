@@ -491,21 +491,6 @@ export const SignInPage = ({ className, onSuccess, onBack, onSubmit, onVerify, i
       if (value && index < 5) {
         codeInputRefs.current[index + 1]?.focus();
       }
-      
-      if (index === 5 && value) {
-        const isComplete = newCode.every(digit => digit.length === 1);
-        if (isComplete) {
-          setReverseCanvasVisible(true);
-          setTimeout(() => {
-            setInitialCanvasVisible(false);
-          }, 50);
-          
-          setTimeout(() => {
-            setStep("success");
-            if (onSuccess) onSuccess();
-          }, 2000);
-        }
-      }
     }
   };
 
@@ -518,10 +503,17 @@ export const SignInPage = ({ className, onSuccess, onBack, onSubmit, onVerify, i
         const success = await onVerify(enteredCode);
         setInternalLoading(false);
         if (success) {
-          setStep("success");
+          // Smooth transition to success
+          setReverseCanvasVisible(true);
+          setTimeout(() => setInitialCanvasVisible(false), 50);
+          setTimeout(() => {
+            setStep("success");
+            if (onSuccess) onSuccess();
+          }, 1500);
         }
       } else {
         setStep("success");
+        if (onSuccess) onSuccess();
       }
     }
   };
