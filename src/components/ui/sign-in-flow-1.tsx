@@ -482,6 +482,16 @@ export const SignInPage = ({ className, onSuccess, onBack, onSubmit, onVerify, i
     }
   }, [step]);
 
+  useEffect(() => {
+    if (step === "success") {
+      const timer = setTimeout(() => {
+        if (onSuccess) onSuccess();
+        window.location.href = "/lab";
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [step, onSuccess]);
+
   const handleCodeChange = (index: number, value: string) => {
     if (value.length <= 1) {
       const newCode = [...code];
@@ -779,7 +789,10 @@ export const SignInPage = ({ className, onSuccess, onBack, onSubmit, onVerify, i
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 1 }}
-                    onClick={() => window.location.href = '/lab'}
+                    onClick={() => {
+                      if (onSuccess) onSuccess();
+                      window.location.href = '/lab';
+                    }}
                     className="w-full rounded-full bg-white text-black font-medium py-3 hover:bg-white/90 transition-colors shadow-lg shadow-white/10"
                   >
                     Enter the Lab
