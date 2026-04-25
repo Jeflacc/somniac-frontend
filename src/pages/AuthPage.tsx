@@ -7,7 +7,7 @@ export function AuthPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleAuth = async (username: string, password: string, isLogin: boolean) => {
+  const handleAuth = async (username: string, password: string, isLogin: boolean, email?: string) => {
     setError("");
     setLoading(true);
 
@@ -22,7 +22,7 @@ export function AuthPage() {
         body.append("password", password);
         headers = { "Content-Type": "application/x-www-form-urlencoded" };
       } else {
-        body = JSON.stringify({ username, password });
+        body = JSON.stringify({ username, email, password });
         headers = { "Content-Type": "application/json" };
       }
 

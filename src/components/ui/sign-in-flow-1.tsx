@@ -30,7 +30,7 @@ interface SignInPageProps {
   className?: string;
   onSuccess?: () => void;
   onBack?: () => void;
-  onSubmit?: (username: string, password: string, isLogin: boolean) => Promise<boolean>;
+  onSubmit?: (username: string, password: string, isLogin: boolean, email?: string) => Promise<boolean>;
   isLoading?: boolean;
 }
       
@@ -439,6 +439,7 @@ function MiniNavbar() {
 
 export const SignInPage = ({ className, onSuccess, onBack, onSubmit, isLoading: externalLoading }: SignInPageProps) => {
   const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLogin, setIsLogin] = useState(true);
   const [step, setStep] = useState<"email" | "code" | "success">("email");
@@ -458,10 +459,10 @@ export const SignInPage = ({ className, onSuccess, onBack, onSubmit, isLoading: 
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (username && password) {
+    if (username && password && (isLogin || email)) {
       if (onSubmit) {
         setInternalLoading(true);
-        const success = await onSubmit(username, password, isLogin);
+        const success = await onSubmit(username, password, isLogin, isLogin ? undefined : email);
         setInternalLoading(false);
         if (success) {
           setStep("code"); // Show security check after login/register
@@ -591,6 +592,18 @@ export const SignInPage = ({ className, onSuccess, onBack, onSubmit, isLoading: 
                     </div>
                     
                     <form onSubmit={handleEmailSubmit} className="space-y-3">
+                      {!isLogin && (
+                        <div className="relative">
+                          <input 
+                            type="email" 
+                            placeholder="Email Address"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className="w-full backdrop-blur-md bg-white/5 text-white border border-white/10 rounded-full py-3 px-4 focus:outline-none focus:border-white/30 text-center transition-all"
+                            required
+                          />
+                        </div>
+                      )}
                       <div className="relative">
                         <input 
                           type="text" 
