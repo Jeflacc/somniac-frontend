@@ -321,8 +321,8 @@ export default function DashboardPage() {
       const file = e.target.files?.[0]
       if (!file) return
 
-      // For decorations OR animated GIFs, preserve raw file data and transparency by avoiding Canvas
-      if (type === 'decoration' || file.type === 'image/gif') {
+      // For decorations OR animated GIFs/WEBPs, preserve raw file data and transparency by avoiding Canvas
+      if (type === 'decoration' || file.type === 'image/gif' || file.type === 'image/webp') {
         const reader = new FileReader()
         reader.onload = async (re) => {
           const dataUrl = re.target?.result as string
