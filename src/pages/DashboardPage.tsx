@@ -7,9 +7,12 @@ import { useAIConnection, type Message } from '../hooks/useAIConnection'
 import { AgentAvatar, EvelynEye } from '../components/ui/LabComponents'
 import StatePanel from '../components/ui/StatePanel'
 
+import { motion, AnimatePresence } from 'framer-motion'
+import { ShoppingBag, Star } from 'lucide-react'
+
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
-interface Agent { id: number; name: string; persona: string; mood: string; profile_picture?: string | null; model_provider?: string }
+interface Agent { id: number; name: string; persona: string; mood: string; profile_picture?: string | null; banner_picture?: string | null; model_provider?: string }
 
 function formatTime(ts: number) {
   const d = new Date(ts)
@@ -26,15 +29,15 @@ function ChatMessageInline({ msg, agentName, agentPic }: { msg: Message; agentNa
   const isUser = msg.role === 'user'
   
   return (
-    <div className="chat-message-inline telegram-anim" style={{ display: 'flex', gap: 16, marginTop: 4 }}>
-      <div style={{ marginTop: 2 }}>
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="chat-message-inline telegram-anim" style={{ display: 'flex', gap: 16, marginTop: 4 }}>
+      <div style={{ marginTop: 2, cursor: isUser ? 'default' : 'pointer' }} onClick={() => { if(!isUser && (window as any).openAiProfile) (window as any).openAiProfile() }}>
         {isUser ? (
           <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--bg-panel)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>You</div>
         ) : (
           <AgentAvatar src={agentPic} name={agentName} size={40} />
         )}
       </div>
-      <div style={{ flex: 1 }}>
+      <div style={{ flex: 1, position: 'relative' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
           <span style={{ fontWeight: 600, fontSize: 15, color: isUser ? 'var(--text-primary)' : 'var(--accent)' }}>
             {isUser ? 'You' : agentName}
@@ -42,8 +45,15 @@ function ChatMessageInline({ msg, agentName, agentPic }: { msg: Message; agentNa
           <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{formatTime(msg.ts)}</span>
         </div>
         <p style={{ fontSize: 15, color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{msg.text}</p>
+        
+        {/* Simple floating emoji logic if message contains emoji */}
+        {!isUser && msg.text && [...msg.text].find(c => c.length > 1 || c.match(/\p{Emoji}/u)) && (
+           <motion.div initial={{ scale: 0, opacity: 0, y: 0 }} animate={{ scale: [0, 1.5, 1], opacity: [0, 1, 0], y: -50 }} transition={{ duration: 1.5, ease: "easeOut" }} style={{ position: 'absolute', top: 0, right: 20, fontSize: 32, pointerEvents: 'none' }}>
+             {[...msg.text].find(c => c.length > 1 || c.match(/\p{Emoji}/u))}
+           </motion.div>
+        )}
       </div>
-    </div>
+    </motion.div>
   )
 }
 
@@ -89,15 +99,26 @@ export default function DashboardPage() {
   const navigate = useNavigate()
   const { token, username, profilePicture, logout, setProfilePicture } = useAuth()
   const [agents, setAgents] = useState<Agent[]>([])
-  const [tab, setTab] = useState<'chat' | 'settings'>('chat')
+  const [tab, setTab] = useState<'chat' | 'settings' | 'shop'>('chat')
   const [input, setInput] = useState('')
   const [masterPhone, setMasterPhone] = useState('')
   const [showSpawn, setShowSpawn] = useState(false)
   const [newName, setNewName] = useState('Evelyn')
   const [newPersona, setNewPersona] = useState('Helpful and friendly AI assistant.')
+  const [newProfilePic, setNewProfilePic] = useState<string | null>(null)
+  const [newBannerPic, setNewBannerPic] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<Agent | null>(null)
   const [deleting, setDeleting] = useState(false)
+  
+  // Profile modal
+  const [showProfile, setShowProfile] = useState(false)
+  // Shop & Inventory
+  const [shopItems, setShopItems] = useState<any[]>([])
+  const [inventory, setInventory] = useState<any[]>([])
+  const [timezone, setTimezone] = useState('Asia/Jakarta')
+  const [savingSettings, setSavingSettings] = useState(false)
+
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
@@ -113,8 +134,22 @@ export default function DashboardPage() {
     } catch {}
   }, [token])
 
-  useEffect(() => { fetchAgents() }, [fetchAgents])
+  const fetchProfileAndShop = useCallback(async () => {
+    try {
+      const pRes = await fetch(`${API_URL}/api/profile`, { headers: { Authorization: `Bearer ${token}` } })
+      if (pRes.ok) {
+        const p = await pRes.json()
+        setInventory(p.inventory || [])
+        setTimezone(p.timezone || 'Asia/Jakarta')
+      }
+      const sRes = await fetch(`${API_URL}/api/shop`, { headers: { Authorization: `Bearer ${token}` } })
+      if (sRes.ok) setShopItems(await sRes.json())
+    } catch {}
+  }, [token])
+
+  useEffect(() => { fetchAgents(); fetchProfileAndShop() }, [fetchAgents, fetchProfileAndShop])
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages, isThinking, streamBuffer])
+  useEffect(() => { (window as any).openAiProfile = () => setShowProfile(true) }, [])
 
   const handleSend = () => {
     const text = input.trim()
@@ -129,7 +164,7 @@ export default function DashboardPage() {
     if (!newName.trim()) return
     setCreating(true)
     try {
-      const res = await fetch(`${API_URL}/api/agents`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ name: newName, base_persona: newPersona }) })
+      const res = await fetch(`${API_URL}/api/agents`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ name: newName, base_persona: newPersona, profile_picture: newProfilePic, banner_picture: newBannerPic }) })
       if (res.ok) { const a = await res.json(); await fetchAgents(); setShowSpawn(false); navigate(`/lab/${a.id}`) }
     } catch {} finally { setCreating(false) }
   }
@@ -143,7 +178,29 @@ export default function DashboardPage() {
     } catch {} finally { setDeleting(false) }
   }
 
-  const handleAvatarUpload = async (type: 'user' | 'agent', agentIdNum?: number) => {
+  const handleSaveSettings = async () => {
+    setSavingSettings(true)
+    try {
+      await fetch(`${API_URL}/api/user/settings`, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ timezone }) })
+    } catch {} finally { setSavingSettings(false) }
+  }
+
+  const buyItem = async (item: any) => {
+    try {
+      const res = await fetch(`${API_URL}/api/shop/buy`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ item_id: item.id, name: item.name, emoji: item.emoji, type: item.type }) })
+      if (res.ok) { const d = await res.json(); setInventory(d.inventory) }
+    } catch {}
+  }
+
+  const interactItem = async (action: 'feed' | 'give', item: any) => {
+    if (!selectedAgent) return
+    try {
+      const res = await fetch(`${API_URL}/api/agents/${selectedAgent.id}/${action}`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ item_id: item.id, name: item.name, emoji: item.emoji }) })
+      if (res.ok) { const d = await res.json(); setInventory(d.inventory) }
+    } catch {}
+  }
+
+  const handleAvatarUpload = async (type: 'user' | 'agent' | 'banner', agentIdNum?: number) => {
     const input = document.createElement('input')
     input.type = 'file'; input.accept = 'image/*'
     input.onchange = async (e: any) => {
@@ -152,17 +209,33 @@ export default function DashboardPage() {
       const canvas = document.createElement('canvas')
       const img = new Image()
       img.onload = async () => {
-        canvas.width = 200; canvas.height = 200
+        const isBanner = type === 'banner'
+        canvas.width = isBanner ? 600 : 200; canvas.height = isBanner ? 200 : 200
         const ctx = canvas.getContext('2d')!
-        const s = Math.min(img.width, img.height)
-        ctx.drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, 200, 200)
+        
+        if (isBanner) {
+          const ratio = Math.max(600 / img.width, 200 / img.height)
+          const newW = img.width * ratio, newH = img.height * ratio
+          ctx.drawImage(img, (600 - newW) / 2, (200 - newH) / 2, newW, newH)
+        } else {
+          const s = Math.min(img.width, img.height)
+          ctx.drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, 200, 200)
+        }
+        
         const dataUrl = canvas.toDataURL('image/webp', 0.8)
-        const url = type === 'user' ? `${API_URL}/api/profile/picture` : `${API_URL}/api/agents/${agentIdNum}/picture`
-        try {
+        
+        if (type === 'user') {
+          await fetch(`${API_URL}/api/profile/picture`, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ image: dataUrl }) })
+          setProfilePicture(dataUrl)
+        } else if (agentIdNum) {
+          const url = isBanner ? `${API_URL}/api/agents/${agentIdNum}/banner` : `${API_URL}/api/agents/${agentIdNum}/picture`
           await fetch(url, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ image: dataUrl }) })
-          if (type === 'user') setProfilePicture(dataUrl)
-          else await fetchAgents()
-        } catch {}
+          await fetchAgents()
+        } else {
+          // Pre-creation upload
+          if (isBanner) setNewBannerPic(dataUrl)
+          else setNewProfilePic(dataUrl)
+        }
       }
       img.src = URL.createObjectURL(file)
     }
@@ -226,6 +299,9 @@ export default function DashboardPage() {
             <div className={`sidebar-item btn-press ${tab === 'chat' ? 'active' : ''}`} onClick={() => setTab('chat')}>
               <MessageSquare size={18} /> Chat
             </div>
+            <div className={`sidebar-item btn-press ${tab === 'shop' ? 'active' : ''}`} onClick={() => setTab('shop')}>
+              <ShoppingBag size={18} /> Shop & Inventory
+            </div>
             <div className="sidebar-item" style={{ opacity: 0.4, cursor: 'not-allowed' }}>
               <Book size={18} /> Journal
             </div>
@@ -273,10 +349,12 @@ export default function DashboardPage() {
         ) : tab === 'chat' ? (<>
           {/* Chat header */}
           <div style={{ height: 64, borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', padding: '0 24px', gap: 16, flexShrink: 0, background: 'var(--bg-primary)', boxShadow: '0 1px 2px rgba(0,0,0,0.1)', zIndex: 10 }}>
-            <div style={{ color: 'var(--text-muted)' }}><MessageSquare size={24} /></div>
-            <div>
+            <div onClick={() => setShowProfile(true)} style={{ cursor: 'pointer' }} className="btn-press">
+              <AgentAvatar src={selectedAgent.profile_picture} name={selectedAgent.name} size={40} />
+            </div>
+            <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => setShowProfile(true)}>
               <div style={{ fontWeight: 700, fontSize: 16 }}>{selectedAgent.name}</div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{aiState?.is_sleeping ? '💤 System asleep' : 'Consciousness active'}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{aiState?.is_sleeping ? '💤 System asleep' : houseState?.chore_step_label || 'Consciousness active'}</div>
             </div>
           </div>
           
@@ -402,13 +480,68 @@ export default function DashboardPage() {
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 8, color: 'var(--text-muted)' }}>BASE PERSONA</label>
               <textarea value={newPersona} onChange={e => setNewPersona(e.target.value)} rows={3} style={{ width: '100%', padding: '12px 16px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-primary)', color: 'var(--text-primary)', resize: 'none', outline: 'none', fontSize: 14, lineHeight: 1.5 }} />
             </div>
+            <div style={{ display: 'flex', gap: 16, marginBottom: 20 }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 8, color: 'var(--text-muted)' }}>AVATAR (Optional)</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <AgentAvatar src={newProfilePic} name={newName} size={48} />
+                  <button onClick={() => handleAvatarUpload('agent')} className="btn-press" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border)', color: 'var(--text-primary)', padding: '6px 12px', borderRadius: 8, fontSize: 12, cursor: 'pointer' }}>Upload</button>
+                </div>
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 8, color: 'var(--text-muted)' }}>BANNER (Optional)</label>
+                <button onClick={() => handleAvatarUpload('banner')} className="btn-press" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border)', color: 'var(--text-primary)', padding: '6px 12px', borderRadius: 8, fontSize: 12, cursor: 'pointer' }}>
+                  {newBannerPic ? 'Banner Uploaded ✓' : 'Upload Banner'}
+                </button>
+              </div>
+            </div>
+
             <div style={{ display: 'flex', gap: 12 }}>
-              <button onClick={() => setShowSpawn(false)} disabled={creating} className="btn-press" style={{ flex: 1, padding: 14, background: 'transparent', border: '1px solid var(--border)', borderRadius: 12, color: 'var(--text-primary)', cursor: 'pointer', fontWeight: 600 }}>Cancel</button>
+              <button onClick={() => {setShowSpawn(false); setNewProfilePic(null); setNewBannerPic(null)}} disabled={creating} className="btn-press" style={{ flex: 1, padding: 14, background: 'transparent', border: '1px solid var(--border)', borderRadius: 12, color: 'var(--text-primary)', cursor: 'pointer', fontWeight: 600 }}>Cancel</button>
               <button onClick={handleCreate} disabled={creating} className="btn-press" style={{ flex: 1, padding: 14, background: 'var(--text-primary)', border: 'none', borderRadius: 12, color: 'var(--bg-primary)', fontWeight: 700, cursor: 'pointer' }}>{creating ? 'Spawning...' : 'Spawn AI'}</button>
             </div>
           </div>
         </div>
       )}
+
+      {/* ═══ AI Profile Modal (Discord style) ═══ */}
+      <AnimatePresence>
+        {showProfile && selectedAgent && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }} onClick={() => setShowProfile(false)}>
+            <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-card)', width: 340, borderRadius: 16, overflow: 'hidden', boxShadow: '0 24px 48px rgba(0,0,0,0.5)', border: '1px solid var(--border)' }}>
+              {/* Banner */}
+              <div style={{ width: '100%', height: 120, background: selectedAgent.banner_picture ? `url(${selectedAgent.banner_picture}) center/cover` : 'var(--accent)' }} />
+              {/* Profile Body */}
+              <div style={{ padding: '0 16px 16px', position: 'relative' }}>
+                <div style={{ position: 'absolute', top: -40, left: 16, border: '6px solid var(--bg-card)', borderRadius: '50%', background: 'var(--bg-card)' }}>
+                  <AgentAvatar src={selectedAgent.profile_picture} name={selectedAgent.name} size={80} />
+                  <div style={{ position: 'absolute', bottom: 4, right: 4, width: 16, height: 16, borderRadius: '50%', background: aiState?.is_sleeping ? 'var(--text-muted)' : 'var(--green)', border: '3px solid var(--bg-card)' }} />
+                </div>
+                
+                <div style={{ marginTop: 50, background: 'var(--bg-panel)', padding: 16, borderRadius: 12 }}>
+                  <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>{selectedAgent.name}</h3>
+                  <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>Somniac AI Entity</div>
+                  
+                  <div style={{ width: '100%', height: 1, background: 'var(--border)', margin: '12px 0' }} />
+                  
+                  <h4 style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase' }}>Current Activity</h4>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
+                    <span>{aiState?.is_sleeping ? '💤' : houseState?.current_chore_emoji || '🛋️'}</span>
+                    <span>{aiState?.is_sleeping ? 'Sleeping' : houseState?.chore_step_label || 'Chilling at home'}</span>
+                  </div>
+                  
+                  <div style={{ width: '100%', height: 1, background: 'var(--border)', margin: '12px 0' }} />
+                  
+                  <h4 style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase' }}>Bio</h4>
+                  <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                    {selectedAgent.persona}
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ═══ Delete Modal ═══ */}
       {deleteTarget && (
