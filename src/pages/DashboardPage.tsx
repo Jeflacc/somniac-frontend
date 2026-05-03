@@ -659,7 +659,7 @@ export default function DashboardPage() {
                     <div style={{ position: 'absolute', bottom: 4, right: 4, width: 22, height: 22, borderRadius: '50%', background: 'var(--bg-panel)', border: '2px solid var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 }}>✏️</div>
                   </div>
                 </div>
-                <div style={{ marginTop: 54 }}>
+                <div style={{ marginTop: 68 }}>
                   <div style={{ fontWeight: 800, fontSize: 22, letterSpacing: '-0.5px', marginBottom: 2 }}>{selectedAgent.name}</div>
                   <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>Somniac AI Entity · {selectedAgent.mood || 'neutral'}</div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
