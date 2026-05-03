@@ -31,7 +31,7 @@ export default function StatePanel({ aiState, houseState, economy, agentName, ag
     <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 20, overflow: 'auto', flex: 1 }}>
       {/* Agent header */}
       {/* Agent header with banner background */}
-      <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 12, border: '1px solid var(--border)', marginBottom: 4 }}>
+      <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 12, border: '1px solid var(--border)', marginBottom: 4, flexShrink: 0 }}>
         {/* Banner Background */}
         <div style={{ 
           position: 'absolute', inset: 0, 
