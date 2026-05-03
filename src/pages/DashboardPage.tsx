@@ -321,22 +321,27 @@ export default function DashboardPage() {
       const file = e.target.files?.[0]
       if (!file) return
 
+      const nameLower = file.name.toLowerCase()
+      const isAnimated = file.type === 'image/gif' || file.type === 'image/webp' || nameLower.endsWith('.gif') || nameLower.endsWith('.webp')
+      
       // For decorations OR animated GIFs/WEBPs, preserve raw file data and transparency by avoiding Canvas
-      if (type === 'decoration' || file.type === 'image/gif' || file.type === 'image/webp') {
+      if (type === 'decoration' || isAnimated) {
         const reader = new FileReader()
         reader.onload = async (re) => {
           const dataUrl = re.target?.result as string
           if (type === 'user') {
-            await fetch(`${API_URL}/api/profile/picture`, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ image: dataUrl }) })
-            setProfilePicture(dataUrl)
+            const res = await fetch(`${API_URL}/api/profile/picture`, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ image: dataUrl }) })
+            if (!res.ok) alert(`Upload failed (${res.status}). The GIF might be too large! If you are on a VPS, increase 'client_max_body_size 50M;' in your NGINX config.`)
+            else setProfilePicture(dataUrl)
           } else if (agentIdNum) {
             const isBanner = type === 'banner'
             const isDecoration = type === 'decoration'
             const url = isBanner ? `${API_URL}/api/agents/${agentIdNum}/banner` : 
                         isDecoration ? `${API_URL}/api/agents/${agentIdNum}/decoration` : 
                         `${API_URL}/api/agents/${agentIdNum}/picture`
-            await fetch(url, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ image: dataUrl }) })
-            await fetchAgents()
+            const res = await fetch(url, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ image: dataUrl }) })
+            if (!res.ok) alert(`Upload failed (${res.status}). The GIF might be too large! If you are on a VPS, increase 'client_max_body_size 50M;' in your NGINX config.`)
+            else await fetchAgents()
           } else {
             // Pre-creation upload
             if (type === 'banner') setNewBannerPic(dataUrl)
@@ -366,12 +371,12 @@ export default function DashboardPage() {
         const dataUrl = canvas.toDataURL('image/webp', 0.8)
         
         if (type === 'user') {
-          await fetch(`${API_URL}/api/profile/picture`, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ image: dataUrl }) })
-          setProfilePicture(dataUrl)
+          const res = await fetch(`${API_URL}/api/profile/picture`, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ image: dataUrl }) })
+          if (res.ok) setProfilePicture(dataUrl)
         } else if (agentIdNum) {
           const url = isBanner ? `${API_URL}/api/agents/${agentIdNum}/banner` : `${API_URL}/api/agents/${agentIdNum}/picture`
-          await fetch(url, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ image: dataUrl }) })
-          await fetchAgents()
+          const res = await fetch(url, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ image: dataUrl }) })
+          if (res.ok) await fetchAgents()
         } else {
           // Pre-creation upload
           if (isBanner) setNewBannerPic(dataUrl)
