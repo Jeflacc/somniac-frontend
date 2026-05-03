@@ -8,7 +8,7 @@ import { AgentAvatar, EvelynEye } from '../components/ui/LabComponents'
 import StatePanel from '../components/ui/StatePanel'
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { ShoppingBag } from 'lucide-react'
+import { ShoppingBag, Newspaper } from 'lucide-react'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -99,7 +99,7 @@ export default function DashboardPage() {
   const navigate = useNavigate()
   const { token, username, profilePicture, logout, setProfilePicture } = useAuth()
   const [agents, setAgents] = useState<Agent[]>([])
-  const [tab, setTab] = useState<'chat' | 'settings' | 'shop'>('chat')
+  const [tab, setTab] = useState<'chat' | 'settings' | 'shop' | 'news'>('chat')
   const [input, setInput] = useState('')
   const [masterPhone, setMasterPhone] = useState('')
   const [showSpawn, setShowSpawn] = useState(false)
@@ -116,6 +116,7 @@ export default function DashboardPage() {
   // Shop & Inventory
   const [shopItems, setShopItems] = useState<any[]>([])
   const [inventory, setInventory] = useState<any[]>([])
+  const [newsPosts, setNewsPosts] = useState<any[]>([])
   const [timezone, setTimezone] = useState('Asia/Jakarta')
   const [savingSettings, setSavingSettings] = useState(false)
 
@@ -200,6 +201,15 @@ export default function DashboardPage() {
     } catch {}
   }
 
+  useEffect(() => {
+    if (tab === 'news' && !selectedAgent) {
+      fetch(`${API_URL}/api/news`)
+        .then(res => res.json())
+        .then(data => setNewsPosts(data))
+        .catch(err => console.error(err))
+    }
+  }, [tab, selectedAgent])
+
   const handleAvatarUpload = async (type: 'user' | 'agent' | 'banner', agentIdNum?: number) => {
     const input = document.createElement('input')
     input.type = 'file'; input.accept = 'image/*'
@@ -248,7 +258,7 @@ export default function DashboardPage() {
       {/* ═══ Icon Rail (Discord Style) ═══ */}
       <div style={{ width: 72, background: 'var(--bg-secondary)', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '16px 0', gap: 12, flexShrink: 0 }}>
         {/* Logo */}
-        <div onClick={() => navigate('/lab')} className="btn-press avatar-rail-container" style={{ cursor: 'pointer', marginBottom: 8 }}>
+        <div onClick={() => { navigate('/lab'); setTab('chat') }} className="btn-press avatar-rail-container" style={{ cursor: 'pointer', marginBottom: 8 }}>
           <div className="avatar-rail" style={{ background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <EvelynEye size={28} />
           </div>
@@ -309,12 +319,17 @@ export default function DashboardPage() {
               <Settings size={18} /> Settings
             </div>
           </div>
-        </>) : (
+        </>) : (<>
           <div style={{ padding: '24px 16px', color: 'var(--text-muted)', fontSize: 14 }}>
             <p style={{ marginBottom: 8, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>Somniac Lab</p>
             <p style={{ lineHeight: 1.5 }}>Select an AI agent from the left rail, or create a new one to begin.</p>
           </div>
-        )}
+          <div style={{ padding: '16px 12px', flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div className={`sidebar-item btn-press ${tab === 'news' ? 'active' : ''}`} onClick={() => setTab('news')}>
+              <Newspaper size={18} /> Somniac News
+            </div>
+          </div>
+        </>)}
 
         {/* User profile at bottom (Discord style) */}
         <div style={{ padding: '12px 14px', background: 'var(--bg-card)', display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -335,17 +350,44 @@ export default function DashboardPage() {
       {/* ═══ Main Content ═══ */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0, background: 'var(--bg-primary)' }}>
         {!selectedAgent ? (
-          /* Empty state */
-          <div className="telegram-anim" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 20 }}>
-            <div style={{ padding: 24, background: 'var(--bg-card)', borderRadius: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
-              <EvelynEye size={80} />
+          tab === 'news' ? (
+            <div className="telegram-anim" style={{ padding: 40, flex: 1, overflow: 'auto' }}>
+              <h2 style={{ fontSize: 28, fontWeight: 700, marginBottom: 32, letterSpacing: '-0.5px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <Newspaper size={28} style={{ color: 'var(--accent)' }}/> Somniac News
+              </h2>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 800 }}>
+                {newsPosts.map((post) => (
+                  <motion.div key={post.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} 
+                    style={{ background: 'var(--bg-card)', borderRadius: 16, border: '1px solid var(--border)', overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', transition: 'transform 0.2s', cursor: 'default' }}
+                    whileHover={{ scale: 1.01 }}>
+                    {post.banner_image && (
+                      <div style={{ width: '100%', height: 200, background: 'var(--bg-panel)' }}>
+                        <img src={post.banner_image} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      </div>
+                    )}
+                    <div style={{ padding: 24 }}>
+                      <div style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 700, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>{new Date(post.created_at * 1000).toLocaleDateString()} • {post.author}</div>
+                      <h3 style={{ fontSize: 24, fontWeight: 800, marginBottom: 16 }}>{post.title}</h3>
+                      <div className="news-content" style={{ color: 'var(--text-secondary)', lineHeight: 1.6, fontSize: 15 }} dangerouslySetInnerHTML={{ __html: post.content }} />
+                    </div>
+                  </motion.div>
+                ))}
+                {newsPosts.length === 0 && <div style={{ color: 'var(--text-muted)' }}>No news currently available.</div>}
+              </div>
             </div>
-            <h2 style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.5px' }}>Welcome to Somniac Lab</h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: 16 }}>Select an agent or spawn a new Artificial Consciousness.</p>
-            <button onClick={() => setShowSpawn(true)} className="btn-press" style={{ background: 'var(--text-primary)', color: 'var(--bg-primary)', border: 'none', padding: '12px 28px', borderRadius: 12, fontWeight: 700, cursor: 'pointer', marginTop: 12, fontSize: 15 }}>
-              Spawn New AI
-            </button>
-          </div>
+          ) : (
+            /* Empty state */
+            <div className="telegram-anim" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 20 }}>
+              <div style={{ padding: 24, background: 'var(--bg-card)', borderRadius: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
+                <EvelynEye size={80} />
+              </div>
+              <h2 style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.5px' }}>Welcome to Somniac Lab</h2>
+              <p style={{ color: 'var(--text-secondary)', fontSize: 16 }}>Select an agent or spawn a new Artificial Consciousness.</p>
+              <button onClick={() => setShowSpawn(true)} className="btn-press" style={{ background: 'var(--text-primary)', color: 'var(--bg-primary)', border: 'none', padding: '12px 28px', borderRadius: 12, fontWeight: 700, cursor: 'pointer', marginTop: 12, fontSize: 15 }}>
+                Spawn New AI
+              </button>
+            </div>
+          )
         ) : tab === 'chat' ? (<>
           {/* Chat header */}
           <div style={{ height: 64, borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', padding: '0 24px', gap: 16, flexShrink: 0, background: 'var(--bg-primary)', boxShadow: '0 1px 2px rgba(0,0,0,0.1)', zIndex: 10 }}>
