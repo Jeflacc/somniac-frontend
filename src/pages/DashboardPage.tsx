@@ -321,13 +321,27 @@ export default function DashboardPage() {
       const file = e.target.files?.[0]
       if (!file) return
 
-      // For decorations, preserve raw animated GIFs and transparency by avoiding Canvas
-      if (type === 'decoration' && agentIdNum) {
+      // For decorations OR animated GIFs, preserve raw file data and transparency by avoiding Canvas
+      if (type === 'decoration' || file.type === 'image/gif') {
         const reader = new FileReader()
         reader.onload = async (re) => {
           const dataUrl = re.target?.result as string
-          await fetch(`${API_URL}/api/agents/${agentIdNum}/decoration`, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ image: dataUrl }) })
-          await fetchAgents()
+          if (type === 'user') {
+            await fetch(`${API_URL}/api/profile/picture`, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ image: dataUrl }) })
+            setProfilePicture(dataUrl)
+          } else if (agentIdNum) {
+            const isBanner = type === 'banner'
+            const isDecoration = type === 'decoration'
+            const url = isBanner ? `${API_URL}/api/agents/${agentIdNum}/banner` : 
+                        isDecoration ? `${API_URL}/api/agents/${agentIdNum}/decoration` : 
+                        `${API_URL}/api/agents/${agentIdNum}/picture`
+            await fetch(url, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ image: dataUrl }) })
+            await fetchAgents()
+          } else {
+            // Pre-creation upload
+            if (type === 'banner') setNewBannerPic(dataUrl)
+            else setNewProfilePic(dataUrl)
+          }
         }
         reader.readAsDataURL(file)
         return
