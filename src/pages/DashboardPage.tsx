@@ -653,18 +653,25 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div style={{ padding: '0 24px 28px', position: 'relative' }}>
+                {/* Avatar — overlaps banner, absolutely positioned */}
                 <div style={{ position: 'absolute', top: -44, left: 24, cursor: 'pointer' }} onClick={() => handleAvatarUpload('agent', selectedAgent.id)}>
                   <div style={{ border: '5px solid var(--bg-card)', borderRadius: '50%', background: 'var(--bg-card)', position: 'relative', display: 'inline-block' }}>
                     <AgentAvatar src={selectedAgent.profile_picture} name={selectedAgent.name} decoration={selectedAgent.avatar_decoration} size={88} />
                     <div style={{ position: 'absolute', bottom: 4, right: 4, width: 22, height: 22, borderRadius: '50%', background: 'var(--bg-panel)', border: '2px solid var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 }}>✏️</div>
                   </div>
                 </div>
-                <div style={{ marginTop: 68 }}>
+
+                {/* Name row — sits to the RIGHT of the avatar using paddingLeft */}
+                <div style={{ paddingLeft: 108, paddingTop: 12, marginBottom: 4 }}>
                   <div style={{ fontWeight: 800, fontSize: 22, letterSpacing: '-0.5px', marginBottom: 2 }}>{selectedAgent.name}</div>
-                  <div style={{ fontSize: 14, color: 'var(--text-primary)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 2 }}>
                     {selectedAgent.name.toLowerCase().replace(/\s+/g, '')} • somniac/entity
                   </div>
-                  <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>Current Mood: {selectedAgent.mood || 'neutral'}</div>
+                  <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Mood: {selectedAgent.mood || 'neutral'}</div>
+                </div>
+
+                {/* Form fields — full width, below avatar */}
+                <div style={{ marginTop: 20 }}>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
                     <div>
                       <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Display Name</label>
@@ -693,6 +700,7 @@ export default function DashboardPage() {
                     )}
                   </div>
                 </div>
+
               </div>
             </div>
 
