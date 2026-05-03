@@ -8,7 +8,7 @@ import { AgentAvatar, EvelynEye } from '../components/ui/LabComponents'
 import StatePanel from '../components/ui/StatePanel'
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { ShoppingBag, Star } from 'lucide-react'
+import { ShoppingBag } from 'lucide-react'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -393,14 +393,87 @@ export default function DashboardPage() {
               Somniac Engine processing. Shift + Enter to add a new line.
             </div>
           </div>
-        </>) : (
+        </> ) : tab === 'shop' ? (
+          <div className="telegram-anim" style={{ padding: 40, flex: 1, overflow: 'auto' }}>
+            <h2 style={{ fontSize: 28, fontWeight: 700, marginBottom: 32, letterSpacing: '-0.5px', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <ShoppingBag size={28} style={{ color: 'var(--accent)' }}/> Shop & Inventory
+            </h2>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32 }}>
+              <div>
+                <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16, color: 'var(--text-secondary)' }}>Market</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {shopItems.map(item => (
+                    <div key={item.id} style={{ background: 'var(--bg-card)', padding: 16, borderRadius: 12, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 16 }}>
+                      <div style={{ fontSize: 32 }}>{item.emoji}</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 700 }}>{item.name}</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{item.description}</div>
+                      </div>
+                      <button onClick={() => buyItem(item)} className="btn-press" style={{ background: 'var(--bg-panel)', color: 'var(--text-primary)', border: '1px solid var(--border)', padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Buy (Free)</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              <div>
+                <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16, color: 'var(--text-secondary)' }}>My Inventory</h3>
+                {inventory.length === 0 ? (
+                  <div style={{ padding: 32, textAlign: 'center', background: 'var(--bg-panel)', borderRadius: 12, color: 'var(--text-muted)', fontSize: 14 }}>Your inventory is empty.</div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {inventory.map(item => (
+                      <div key={item.id} style={{ background: 'var(--bg-card)', padding: 16, borderRadius: 12, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 16 }}>
+                        <div style={{ fontSize: 32 }}>{item.emoji}</div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 700 }}>{item.name}</div>
+                          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Owned: {item.qty}</div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          {item.type === 'food' && (
+                            <button onClick={() => interactItem('feed', item)} className="btn-press" style={{ background: 'var(--accent)', color: 'var(--bg-primary)', border: 'none', padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Feed AI</button>
+                          )}
+                          <button onClick={() => interactItem('give', item)} className="btn-press" style={{ background: 'var(--bg-panel)', color: 'var(--text-primary)', border: '1px solid var(--border)', padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Give</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : (
           /* Settings tab */
           <div className="telegram-anim" style={{ padding: 40, flex: 1, overflow: 'auto' }}>
             <h2 style={{ fontSize: 28, fontWeight: 700, marginBottom: 32, letterSpacing: '-0.5px' }}>Settings</h2>
 
-            {/* Agent avatar */}
+            {/* User Settings */}
             <div style={{ background: 'var(--bg-card)', padding: 32, borderRadius: 16, border: '1px solid var(--border)', marginBottom: 24 }}>
-              <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 20 }}>Agent Profile</h3>
+              <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 20 }}>User Preferences</h3>
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ display: 'block', marginBottom: 8, fontSize: 13, fontWeight: 600, color: 'var(--text-muted)' }}>Timezone</label>
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <input type="text" value={timezone} onChange={e => setTimezone(e.target.value)} placeholder="e.g. Asia/Jakarta"
+                    style={{ flex: 1, maxWidth: 360, padding: '12px 16px', borderRadius: 8, background: 'var(--bg-primary)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 14, outline: 'none' }} />
+                  <button onClick={handleSaveSettings} disabled={savingSettings} className="btn-press" style={{ background: 'var(--text-primary)', color: 'var(--bg-primary)', border: 'none', padding: '10px 24px', borderRadius: 8, fontWeight: 600, cursor: 'pointer' }}>
+                    {savingSettings ? 'Saving...' : 'Save'}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Agent avatar & banner */}
+            <div style={{ background: 'var(--bg-card)', padding: 32, borderRadius: 16, border: '1px solid var(--border)', marginBottom: 24 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 20 }}>Agent Profile Customization</h3>
+              
+              <div style={{ marginBottom: 24 }}>
+                <label style={{ display: 'block', marginBottom: 8, fontSize: 13, fontWeight: 600, color: 'var(--text-muted)' }}>Banner Image</label>
+                <div style={{ position: 'relative', width: '100%', height: 120, background: 'var(--bg-panel)', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border)', marginBottom: 12 }}>
+                  {selectedAgent.banner_picture ? <img src={selectedAgent.banner_picture} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>No Banner</div>}
+                </div>
+                <button onClick={() => handleAvatarUpload('banner', selectedAgent.id)} className="btn-press" style={{ background: 'var(--bg-panel)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 16px', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>Change Banner</button>
+              </div>
+
               <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
                 <AgentAvatar src={selectedAgent.profile_picture} name={selectedAgent.name} size={80} />
                 <div>
