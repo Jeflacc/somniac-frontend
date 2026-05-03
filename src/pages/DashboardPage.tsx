@@ -320,6 +320,19 @@ export default function DashboardPage() {
     input.onchange = async (e: any) => {
       const file = e.target.files?.[0]
       if (!file) return
+
+      // For decorations, preserve raw animated GIFs and transparency by avoiding Canvas
+      if (type === 'decoration' && agentIdNum) {
+        const reader = new FileReader()
+        reader.onload = async (re) => {
+          const dataUrl = re.target?.result as string
+          await fetch(`${API_URL}/api/agents/${agentIdNum}/decoration`, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ image: dataUrl }) })
+          await fetchAgents()
+        }
+        reader.readAsDataURL(file)
+        return
+      }
+
       const canvas = document.createElement('canvas')
       const img = new Image()
       img.onload = async () => {
@@ -342,10 +355,7 @@ export default function DashboardPage() {
           await fetch(`${API_URL}/api/profile/picture`, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ image: dataUrl }) })
           setProfilePicture(dataUrl)
         } else if (agentIdNum) {
-          const isDecoration = type === 'decoration'
-          const url = isBanner ? `${API_URL}/api/agents/${agentIdNum}/banner` : 
-                      isDecoration ? `${API_URL}/api/agents/${agentIdNum}/decoration` : 
-                      `${API_URL}/api/agents/${agentIdNum}/picture`
+          const url = isBanner ? `${API_URL}/api/agents/${agentIdNum}/banner` : `${API_URL}/api/agents/${agentIdNum}/picture`
           await fetch(url, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ image: dataUrl }) })
           await fetchAgents()
         } else {
@@ -762,7 +772,7 @@ export default function DashboardPage() {
           <div style={{ padding: '20px 20px 16px', borderBottom: '1px solid var(--border)', flexShrink: 0, boxShadow: '0 1px 2px rgba(0,0,0,0.2)' }}>
             <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', fontWeight: 700 }}>AC Dashboard</div>
           </div>
-          <StatePanel aiState={aiState} houseState={houseState} economy={economy} agentName={selectedAgent.name} agentPic={selectedAgent.profile_picture} agentDecoration={selectedAgent.avatar_decoration} sendCommand={sendCommand} />
+          <StatePanel aiState={aiState} houseState={houseState} economy={economy} agentName={selectedAgent.name} agentPic={selectedAgent.profile_picture} agentBanner={selectedAgent.banner_picture} agentDecoration={selectedAgent.avatar_decoration} sendCommand={sendCommand} />
         </div>
       )}
 
