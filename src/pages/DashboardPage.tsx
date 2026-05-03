@@ -661,7 +661,10 @@ export default function DashboardPage() {
                 </div>
                 <div style={{ marginTop: 68 }}>
                   <div style={{ fontWeight: 800, fontSize: 22, letterSpacing: '-0.5px', marginBottom: 2 }}>{selectedAgent.name}</div>
-                  <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>Somniac AI Entity · {selectedAgent.mood || 'neutral'}</div>
+                  <div style={{ fontSize: 14, color: 'var(--text-primary)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {selectedAgent.name.toLowerCase().replace(/\s+/g, '')} • somniac/entity
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>Current Mood: {selectedAgent.mood || 'neutral'}</div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
                     <div>
                       <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Display Name</label>
