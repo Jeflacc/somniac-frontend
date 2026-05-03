@@ -151,6 +151,7 @@ export default function DashboardPage() {
   const [discordToken, setDiscordToken] = useState('')
   const [discordChannelId, setDiscordChannelId] = useState('')
   const [discordConnecting, setDiscordConnecting] = useState(false)
+  const [discordBotInfo, setDiscordBotInfo] = useState<{name: string; id: string; avatar_url: string | null} | null>(null)
 
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -231,6 +232,13 @@ export default function DashboardPage() {
             await fetchAgents()
             setDiscordToken('')
             setDiscordChannelId('')
+            // Poll for bot info — bot needs a moment to log in
+            setTimeout(async () => {
+              try {
+                const infoRes = await fetch(`${API_URL}/api/agents/${selectedAgent.id}/discord/info`, { headers: { Authorization: `Bearer ${token}` } })
+                if (infoRes.ok) { const info = await infoRes.json(); if (info.name) setDiscordBotInfo(info) }
+              } catch {}
+            }, 3000)
         }
     } catch (e) {
         console.error(e)
@@ -249,6 +257,7 @@ export default function DashboardPage() {
         })
         if (res.ok) {
             await fetchAgents()
+            setDiscordBotInfo(null)
         }
     } catch (e) {
         console.error(e)
@@ -256,6 +265,16 @@ export default function DashboardPage() {
         setDiscordConnecting(false)
     }
   }
+
+  // Fetch bot info when switching to settings tab with a connected agent
+  useEffect(() => {
+    if (tab === 'settings' && selectedAgent?.discord_connected) {
+      fetch(`${API_URL}/api/agents/${selectedAgent.id}/discord/info`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.ok ? r.json() : null)
+        .then(info => { if (info?.name) setDiscordBotInfo(info) })
+        .catch(() => {})
+    }
+  }, [tab, selectedAgent?.id, selectedAgent?.discord_connected])
 
   const buyItem = async (item: any) => {
     try {
@@ -647,8 +666,22 @@ export default function DashboardPage() {
 
               <IntegrationCell icon="🎮" color="#5865F2" label="Discord" description="Read timelines and post autonomously in Discord" connected={!!selectedAgent.discord_connected}>
                 {selectedAgent.discord_connected ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    <div style={{ color: '#22c55e', fontWeight: 600, fontSize: 14 }}>🟢 Bot is live and listening to your timeline.</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    {/* Bot profile card */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px', background: 'var(--bg-primary)', borderRadius: 12, border: '1px solid var(--border)' }}>
+                      {discordBotInfo?.avatar_url
+                        ? <img src={discordBotInfo.avatar_url} style={{ width: 52, height: 52, borderRadius: '50%', border: '3px solid #5865F255', objectFit: 'cover' }} />
+                        : <div style={{ width: 52, height: 52, borderRadius: '50%', background: '#5865F222', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>🤖</div>
+                      }
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 700, fontSize: 16 }}>{discordBotInfo?.name ?? 'Bot Connected'}</div>
+                        {discordBotInfo?.id && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>ID: {discordBotInfo.id}</div>}
+                      </div>
+                      <span style={{ fontSize: 11, fontWeight: 700, background: '#22c55e22', color: '#22c55e', padding: '4px 10px', borderRadius: 20 }}>● LIVE</span>
+                    </div>
+                    <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                      🤖 Bot is online and will respond to messages in your designated channel.
+                    </div>
                     <button onClick={handleDiscordDisconnect} disabled={discordConnecting} className="btn-press"
                       style={{ alignSelf: 'flex-start', background: 'var(--bg-panel)', color: 'var(--text-primary)', border: '1px solid var(--border)', padding: '10px 20px', borderRadius: 8, fontWeight: 600, cursor: 'pointer' }}>
                       {discordConnecting ? 'Disconnecting...' : 'Disconnect Bot'}
